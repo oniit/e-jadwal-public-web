@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Jadwal | Aset Rektorat UINSSC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <link rel="icon" href="/logo.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="container mx-auto p-2 sm:p-4 md:p-10 max-w-full w-full">
+        <header class="text-center mb-6">
+            <div class="logo-container flex flex-col items-center justify-center">
+                <div class="flex flex-row text-left">
+                    <img src="/logo.png" alt="Logo" class="logo-img h-8 w-auto sm:h-[33px] sm:w-auto sm:mr-2 mt-3">
+                    <h1 class="logo-title text-2xl sm:text-4xl font-bold mt-2 color-kendaraan">E-Jadwal</h1>
+                </div>
+                <p class="logo-tagline font-semibold color-gedung text-xs sm:text-sm" style="padding-top: 0.3rem;">JADWAL PEMINJAMAN GEDUNG DAN KENDARAAN UINSSC</p>
+            </div>
+        </header>
+        <main>
+            <div id="content-kalender">
+                <div class="bg-white p-2 sm:p-4 md:p-6 rounded-xl shadow-lg w-full">
+                    <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="flex space-x-1 p-1 rounded-xl bg-gray-100">
+                                <button id="calendar-tab-gedung" class="tab-btn-cal active">Gedung</button>
+                                <button id="calendar-tab-kendaraan" class="tab-btn-cal">Kendaraan</button>
+                            </div>
+                        </div>
+                        <select id="calendar-asset-filter" class="filter-menu"></select>
+                    </div>
+                    <div id='calendar'></div>
+                </div>
+            </div>
+            <div id="modal-detail-event" class="modal-backdrop hidden">
+                <div class="modal-content max-w-xs sm:max-w-lg mx-auto">
+                    <button class="modal-close-btn" >&times;</button>
+                    <h3 id="modal-title" class="text-2xl font-bold mb-4">Detail Peminjaman</h3>
+                    <div id="modal-body" class="space-y-4 text-gray-700"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/script.js"></script>
+</body>
+</html>

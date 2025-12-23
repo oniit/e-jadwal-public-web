@@ -1,0 +1,27 @@
+{
+  "name": "e-jadwall",
+  "version": "1.0.0",
+  "description": "Jadwal Peminjaman Gedung dan Kendaraan - Static Calendar View",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [
+    "jadwal",
+    "peminjaman",
+    "gedung",
+    "kendaraan"
+  ],
+  "author": "Rektorat UINSSC",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "mongoose": "^7.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
