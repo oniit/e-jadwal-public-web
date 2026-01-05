@@ -1,6 +1,11 @@
 ﻿(function () {
     let initialized = false;
 
+    // Escape untrusted strings to prevent XSS
+    const esc = (v) => String(v ?? '').replace(/[&<>"'`=\/]/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
+    })[s]);
+
     const formatBookingForCalendar = (booking) => ({
         id: booking._id,
         title: booking.assetName,
@@ -117,7 +122,7 @@
             },
             eventClick: (info) => showDetailModal(info.event.extendedProps),
             eventContent: (arg) => ({
-                html: `<div class="p-1"><b>${arg.event.extendedProps.bookingType === 'gedung' ? '🏢' : '🚗'} ${arg.event.title}</b></div>`,
+                html: `<div class="p-1"><b>${arg.event.extendedProps.bookingType === 'gedung' ? '🏢' : '🚗'} ${esc(arg.event.title)}</b></div>`,
             }),
         });
 
@@ -159,7 +164,7 @@
 
             // Show Booking ID when available (calendar events are bookings)
             if (booking.bookingId) {
-                detailHtml += `<p><strong>Booking ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded text-sm">${booking.bookingId}</code></p>`;
+                detailHtml += `<p><strong>Booking ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded text-sm">${esc(booking.bookingId)}</code></p>`;
             }
 
             // Optionally show status badge when present
@@ -170,20 +175,20 @@
                     rejected: { label: 'Ditolak', color: 'bg-red-100 text-red-800' }
                 };
                 const s = statusMap[booking.status] || { label: booking.status, color: 'bg-gray-100 text-gray-800' };
-                detailHtml += `<p><strong>Status:</strong> <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${s.color}">${s.label}</span></p>`;
+                detailHtml += `<p><strong>Status:</strong> <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span></p>`;
             }
 
-            detailHtml += `<p><strong>Peminjam:</strong> ${booking.userName}</p>`;
+            // Do not display borrower name or other PII on public view
             detailHtml += ``;
             if (booking.bookingType === 'gedung') {
-                if (booking.activityName) detailHtml += `<p><i class="fa-solid fa-list-check mr-2" aria-hidden="true"></i>${booking.activityName}</p>`;
+                if (booking.activityName) detailHtml += `<p><i class="fa-solid fa-list-check mr-2" aria-hidden="true"></i>${esc(booking.activityName)}</p>`;
                 if (booking.borrowedItems && booking.borrowedItems.length > 0) {
                     detailHtml += `<p><i class="fa-solid fa-box mr-2" aria-hidden="true"></i>`;
-                    detailHtml += booking.borrowedItems.map(item => `${item.assetName} (${item.quantity})`).join(', ');
+                    detailHtml += booking.borrowedItems.map(item => `${esc(item.assetName)} (${Number(item.quantity)})`).join(', ');
                     detailHtml += `</p>`;
                 }
             } else {
-                if (booking.driverName && booking.driverName !== 'Tanpa Supir') detailHtml += `<p><strong>Supir:</strong> ${booking.driverName}</p>`;
+                // Do not display driver name on public view
             }
 
             elements.modalBody.innerHTML = detailHtml;
@@ -207,10 +212,10 @@
                     rejected: { label: 'Ditolak', color: 'bg-red-100 text-red-800' }
                 };
                 const statusInfo = statusMap[booking.status] || { label: booking.status, color: 'bg-gray-100 text-gray-800' };
-                detailHtml += `<p><strong>Status:</strong> <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${statusInfo.color}">${statusInfo.label}</span></p>`;
+                detailHtml += `<p><strong>Status:</strong> <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${statusInfo.color}">${esc(statusInfo.label)}</span></p>`;
                 
                 if (booking.status === 'rejected' && booking.rejectionReason) {
-                    detailHtml += `<p><strong>Alasan Penolakan:</strong> <span class="text-red-600">${booking.rejectionReason}</span></p>`;
+                    detailHtml += `<p><strong>Alasan Penolakan:</strong> <span class="text-red-600">${esc(booking.rejectionReason)}</span></p>`;
                 }
                 
                 if (booking.status === 'approved') {
@@ -226,56 +231,47 @@
                         if (match) bookingIdToShow = match.bookingId;
                     }
                     if (bookingIdToShow) {
-                        detailHtml += `<p><strong>Booking ID:</strong> <code class=\"bg-gray-100 px-2 py-1 rounded text-sm\">${bookingIdToShow}</code></p>`;
+                        detailHtml += `<p><strong>Booking ID:</strong> <code class=\"bg-gray-100 px-2 py-1 rounded text-sm\">${esc(bookingIdToShow)}</code></p>`;
                     }
                 }
             } else if (booking.bookingId) {
-                detailHtml += `<p><strong>Booking ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded text-sm">${booking.bookingId}</code></p>`;
+                detailHtml += `<p><strong>Booking ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded text-sm">${esc(booking.bookingId)}</code></p>`;
             }
             
             if (booking.requestId) {
-                detailHtml += `<p><strong>Request ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded text-sm">${booking.requestId}</code></p>`;
+                detailHtml += `<p><strong>Request ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded text-sm">${esc(booking.requestId)}</code></p>`;
             }
             
-            detailHtml += `<p><strong>Peminjam:</strong> ${booking.userName}</p>`;
+            // Do not display borrower name or other PII on public detail
             
-            if (booking.personInCharge) {
-                detailHtml += `<p><strong>Penanggung Jawab:</strong> ${booking.personInCharge}</p>`;
-            }
-            if (booking.picPhoneNumber) {
-                detailHtml += `<p><strong>No. Telepon:</strong> ${booking.picPhoneNumber}</p>`;
-            }
+            // Hide PIC and phone number on public
             if (booking.bookingType === 'gedung') {
                 if (booking.activityName) {
-                    detailHtml += `<p><strong>Kegiatan:</strong> ${booking.activityName}</p>`;
+                    detailHtml += `<p><strong>Kegiatan:</strong> ${esc(booking.activityName)}</p>`;
                 }
                 if (booking.borrowedItems && booking.borrowedItems.length > 0) {
                     detailHtml += `<p><strong>Barang Dipinjam:</strong></p><ul class="ml-4 list-disc">`;
                     booking.borrowedItems.forEach(item => {
-                        detailHtml += `<li>${item.assetName} (${item.assetCode}) - ${item.quantity} unit</li>`;
+                        detailHtml += `<li>${esc(item.assetName)} (${esc(item.assetCode)}) - ${Number(item.quantity)} unit</li>`;
                     });
                     detailHtml += `</ul>`;
                 }
             } else if (booking.bookingType === 'kendaraan') {
                 if (booking.destination) {
-                    detailHtml += `<p><strong>Tujuan:</strong> ${booking.destination}</p>`;
+                    detailHtml += `<p><strong>Tujuan:</strong> ${esc(booking.destination)}</p>`;
                 }
-                if (booking.driverName && booking.driverName !== 'Tanpa Supir') {
-                    detailHtml += `<p><strong>Supir:</strong> ${booking.driverName}</p>`;
-                }
+                // Hide driver name
             }
             
-            if (booking.notes) {
-                detailHtml += `<p><strong>Catatan:</strong> ${booking.notes}</p>`;
-            }
+            // Hide notes on public view
             
             if (booking.letterFile) {
-                detailHtml += `<p><strong>Surat:</strong> <a href="/api/requests/download-surat/${booking.letterFile}" target="_blank" class="text-blue-500 underline">Download Surat</a></p>`;
+                detailHtml += `<p><strong>Surat:</strong> <a href="/api/requests/download-surat/${esc(booking.letterFile)}" target="_blank" class="text-blue-500 underline">Download Surat</a></p>`;
             }
             
             if (booking.submissionDate) {
                 const subDate = new Date(booking.submissionDate);
-                detailHtml += `<p class="text-sm text-gray-500 mt-2"><em>Diajukan: ${subDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</em></p>`;
+                detailHtml += `<p class="text-sm text-gray-500 mt-2"><em>Diajukan: ${esc(subDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }))}</em></p>`;
             }
 
             elements.modalBody.innerHTML = detailHtml;
