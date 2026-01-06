@@ -21,7 +21,7 @@ const bookingSchema = new Schema({
             quantity: { type: Number, required: true, min: 1 }
         }
     ],
-    driverName: String,
+    driver: { type: Schema.Types.ObjectId, ref: 'Driver' },
     destination: String,
 }, { timestamps: true });
 

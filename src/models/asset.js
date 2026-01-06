@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const ALLOWED_TYPES = ['gedung', 'kendaraan', 'supir', 'barang'];
+const ALLOWED_TYPES = ['gedung', 'kendaraan', 'barang'];
 
 const assetSchema = new Schema({
     kode: { type: String, required: true, trim: true },
@@ -12,3 +12,4 @@ const assetSchema = new Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Asset', assetSchema);
+module.exports.ALLOWED_TYPES = ALLOWED_TYPES;

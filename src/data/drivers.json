@@ -1,0 +1,20 @@
+[
+  {
+    "kode": "DRV001",
+    "nama": "Budi Santoso",
+    "noTelp": "08123456789",
+    "detail": "Supir berpengalaman 10 tahun"
+  },
+  {
+    "kode": "DRV002",
+    "nama": "Ahmad Yani",
+    "noTelp": "08234567890",
+    "detail": "Supir berpengalaman 5 tahun"
+  },
+  {
+    "kode": "DRV003",
+    "nama": "Siti Nurhaliza",
+    "noTelp": "08345678901",
+    "detail": "Supir berpengalaman 7 tahun"
+  }
+]

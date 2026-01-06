@@ -6,6 +6,7 @@
     <title>E-Jadwal | Aset Rektorat UINSSC</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
     <link rel="icon" href="/logo.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
@@ -34,7 +35,10 @@
                             </div>
                             <div><button id="btn-form" class="add-btn px-2 sm:px-3 py-2 text-sm whitespace-nowrap">+ Request Pinjam</button></div>
                         </div>
-                        <select id="calendar-asset-filter" class="filter-menu"></select>
+                        <div class="flex items-center gap-2">
+                            <select id="calendar-driver-filter" class="filter-menu hidden"></select>
+                            <select id="calendar-asset-filter" class="filter-menu"></select>
+                        </div>
                     </div>
                     <div id='calendar'></div>
                 </div>

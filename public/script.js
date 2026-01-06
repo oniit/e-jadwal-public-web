@@ -70,15 +70,18 @@
         initialized = true;
 
         const state = {
-            assets: { gedung: [], kendaraan: [], supir: [], barang: [] },
+            assets: { gedung: [], kendaraan: [], barang: [] },
+            drivers: [],
             bookings: [],
             viewType: 'gedung',
             selectedAsset: 'all',
+            selectedDriver: 'all',
         };
 
         const elements = {
             calendarEl: document.getElementById('calendar'),
             assetFilter: document.getElementById('calendar-asset-filter'),
+            driverFilter: document.getElementById('calendar-driver-filter'),
             tabGedung: document.getElementById('calendar-tab-gedung'),
             tabKendaraan: document.getElementById('calendar-tab-kendaraan'),
             modal: document.getElementById('modal-detail-event'),
@@ -112,6 +115,16 @@
                 const filtered = state.bookings
                     .filter(b => b.bookingType === state.viewType)
                     .filter(b => state.selectedAsset === 'all' || b.assetCode === state.selectedAsset)
+                    .filter(b => {
+                        if (state.viewType !== 'kendaraan' || state.selectedDriver === 'all') return true;
+                        if (!b.driver) return false;
+                        
+                        const driverCode = b.driverCode || (typeof b.driver === 'object' && b.driver ? b.driver.kode : null);
+                        const driverName = typeof b.driver === 'object' && b.driver ? b.driver.nama : b.driver;
+                        const driverId = typeof b.driver === 'object' && b.driver ? b.driver._id : null;
+                        
+                        return state.selectedDriver === driverCode || state.selectedDriver === driverName || state.selectedDriver === driverId;
+                    })
                     .map(formatBookingForCalendar);
                 successCallback(filtered);
             },
@@ -120,6 +133,27 @@
                 html: `<div class="p-1"><b>${arg.event.extendedProps.bookingType === 'gedung' ? '🏢' : '🚗'} ${arg.event.title}</b></div>`,
             }),
         });
+
+        const populateDriverFilter = () => {
+            if (!elements.driverFilter) return;
+            if (state.viewType !== 'kendaraan') {
+                elements.driverFilter.classList.add('hidden');
+                elements.driverFilter.innerHTML = '';
+                state.selectedDriver = 'all';
+                return;
+            }
+            elements.driverFilter.classList.remove('hidden');
+            const drivers = state.drivers || [];
+            elements.driverFilter.innerHTML = `<option value="all">Semua Supir</option>`;
+            drivers.forEach(driver => {
+                const value = driver._id || driver.kode || driver.code || driver.nama;
+                const label = driver.nama || driver.kode || driver.code || 'Supir';
+                const option = new Option(label, value);
+                elements.driverFilter.add(option);
+            });
+            elements.driverFilter.value = 'all';
+            state.selectedDriver = 'all';
+        };
 
         const populateAssetFilter = () => {
             if (!elements.assetFilter) return;
@@ -139,6 +173,7 @@
             elements.tabGedung?.classList.toggle('active', type === 'gedung');
             elements.tabKendaraan?.classList.toggle('active', type === 'kendaraan');
             populateAssetFilter();
+            populateDriverFilter();
             renderFormRequest();
             calendar.refetchEvents();
         };
@@ -183,7 +218,10 @@
                     detailHtml += `</p>`;
                 }
             } else {
-                if (booking.driverName && booking.driverName !== 'Tanpa Supir') detailHtml += `<p><strong>Supir:</strong> ${booking.driverName}</p>`;
+                if (booking.driver) {
+                    const driverName = typeof booking.driver === 'object' ? booking.driver.nama : booking.driver;
+                    if (driverName) detailHtml += `<p><strong>Supir:</strong> ${driverName}</p>`;
+                }
             }
 
             elements.modalBody.innerHTML = detailHtml;
@@ -260,8 +298,9 @@
                 if (booking.destination) {
                     detailHtml += `<p><strong>Tujuan:</strong> ${booking.destination}</p>`;
                 }
-                if (booking.driverName && booking.driverName !== 'Tanpa Supir') {
-                    detailHtml += `<p><strong>Supir:</strong> ${booking.driverName}</p>`;
+                if (booking.driver) {
+                    const driverName = typeof booking.driver === 'object' ? booking.driver.nama : booking.driver;
+                    if (driverName) detailHtml += `<p><strong>Supir:</strong> ${driverName}</p>`;
                 }
             }
             
@@ -342,20 +381,62 @@
             
             populateRequestAssets();
             setupRequestFormLogic();
-            
-            // Re-attach submit event after form is fully rendered
-            setTimeout(() => {
-                elements.formRequest.removeEventListener('submit', handleRequestSubmit);
-                elements.formRequest.addEventListener('submit', handleRequestSubmit);
-                console.log('Form submit event attached');
-            }, 0);
         };
 
-        const populateRequestAssets = () => {
+        const populateRequestAssets = (unavailableAssets = new Set()) => {
             const select = document.getElementById('req-aset');
             if (!select) return;
             const assets = state.viewType === 'gedung' ? state.assets.gedung : state.assets.kendaraan;
-            select.innerHTML = assets.map(a => `<option value="${a.kode}">${a.nama}</option>`).join('');
+            select.innerHTML = '';
+            assets.forEach(a => {
+                const option = new Option(a.nama, a.kode);
+                if (unavailableAssets.has(a.kode)) {
+                    option.disabled = true;
+                    option.text = `${a.nama} (Tidak Tersedia)`;
+                }
+                select.add(option);
+            });
+        };
+
+        const updateAvailableRequestAssets = () => {
+            const useTime = document.getElementById('req-use-time')?.checked;
+            const startDateInput = document.getElementById('req-mulai-tanggal');
+            const endDateInput = document.getElementById('req-selesai-tanggal');
+            const startTimeInput = document.getElementById('req-mulai-jam');
+            const endTimeInput = document.getElementById('req-selesai-jam');
+
+            if (!startDateInput?.value || !endDateInput?.value) {
+                populateRequestAssets();
+                return;
+            }
+
+            let start, end;
+            if (useTime && startTimeInput?.value && endTimeInput?.value) {
+                start = new Date(`${startDateInput.value}T${startTimeInput.value}`);
+                end = new Date(`${endDateInput.value}T${endTimeInput.value}`);
+            } else {
+                const timeStart = state.viewType === 'gedung' ? GEDUNG_START : '00:00';
+                const timeEnd = state.viewType === 'gedung' ? GEDUNG_END : '23:59';
+                start = new Date(`${startDateInput.value}T${timeStart}`);
+                end = new Date(`${endDateInput.value}T${timeEnd}`);
+            }
+
+            if (isNaN(start) || isNaN(end) || start >= end) {
+                populateRequestAssets();
+                return;
+            }
+
+            const unavailable = new Set();
+            state.bookings.forEach(booking => {
+                if (booking.bookingType !== state.viewType) return;
+                const bs = new Date(booking.startDate);
+                const be = new Date(booking.endDate);
+                if (start < be && end > bs) {
+                    unavailable.add(booking.assetCode);
+                }
+            });
+
+            populateRequestAssets(unavailable);
         };
 
         const setupRequestFormLogic = () => {
@@ -368,19 +449,28 @@
             
             useTimeCheckbox.addEventListener('change', () => {
                 timeInputsDiv.classList.toggle('hidden', !useTimeCheckbox.checked);
+                updateAvailableRequestAssets();
                 updateRequestAssetAvailability();
             });
             
             startDateInput.addEventListener('change', () => {
                 endDateInput.min = startDateInput.value;
+                updateAvailableRequestAssets();
                 updateRequestAssetAvailability();
             });
             endDateInput.addEventListener('change', () => {
+                updateAvailableRequestAssets();
                 updateRequestAssetAvailability();
             });
             
-            document.getElementById('req-mulai-jam')?.addEventListener('change', updateRequestAssetAvailability);
-            document.getElementById('req-selesai-jam')?.addEventListener('change', updateRequestAssetAvailability);
+            document.getElementById('req-mulai-jam')?.addEventListener('change', () => {
+                updateAvailableRequestAssets();
+                updateRequestAssetAvailability();
+            });
+            document.getElementById('req-selesai-jam')?.addEventListener('change', () => {
+                updateAvailableRequestAssets();
+                updateRequestAssetAvailability();
+            });
             
             if (state.viewType === 'gedung') {
                 resetRequestBarangChips();
@@ -539,14 +629,11 @@
         };
 
         const handleRequestSubmit = async (e) => {
-            console.log('Submit button clicked');
             e.preventDefault();
             const form = elements.formRequest;
             const mulaiDate = form.querySelector('#req-mulai-tanggal').value;
             const selesaiDate = form.querySelector('#req-selesai-tanggal').value;
             const useTime = form.querySelector('#req-use-time')?.checked;
-            
-            console.log('Form data:', { mulaiDate, selesaiDate, useTime });
             
             if (!mulaiDate || !selesaiDate) {
                 alert('Tanggal mulai dan selesai wajib diisi.');
@@ -585,8 +672,8 @@
                 picPhoneNumber: form.querySelector('#req-hp-pj').value,
                 assetCode: form.querySelector('#req-aset').value,
                 assetName: form.querySelector('#req-aset').options[form.querySelector('#req-aset').selectedIndex].text,
-                startDate: startDate,
-                endDate: endDate,
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
                 notes: form.querySelector('#req-keterangan')?.value,
             };
 
@@ -597,22 +684,15 @@
                 }
                 requestData.activityName = form.querySelector('#req-kegiatan')?.value;
             } else {
-                requestData.driverName = 'Tanpa Supir';
+                requestData.driver = null;
                 requestData.destination = form.querySelector('#req-tujuan')?.value;
             }
 
             try {
-                const formData = new FormData();
-                formData.append('data', JSON.stringify(requestData));
-                
-                const fileInput = form.querySelector('#req-surat');
-                if (fileInput && fileInput.files.length > 0) {
-                    formData.append('letterFile', fileInput.files[0]);
-                }
-
                 const response = await fetch('/api/requests', {
                     method: 'POST',
-                    body: formData,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData),
                 });
                 
                 const contentType = response.headers.get('content-type') || '';
@@ -638,6 +718,11 @@
             elements.tabKendaraan?.addEventListener('click', () => setActiveTab('kendaraan'));
             elements.assetFilter?.addEventListener('change', (e) => {
                 state.selectedAsset = e.target.value || 'all';
+                calendar.refetchEvents();
+            });
+
+            elements.driverFilter?.addEventListener('change', (e) => {
+                state.selectedDriver = e.target.value || 'all';
                 calendar.refetchEvents();
             });
 
@@ -680,7 +765,6 @@
                     const code = prompt('Masukkan Booking ID atau Request ID');
                     if (!code) return;
                     try {
-                        // Try booking first, then request
                         let data;
                         try {
                             data = await fetchBookingByCode(code.trim());
@@ -697,18 +781,20 @@
 
         const loadData = async () => {
             try {
-                const [assets, bookings] = await Promise.all([
+                const [assets, driversData, bookings] = await Promise.all([
                     fetchJson('/api/assets'),
+                    fetchJson('/api/drivers'),
                     fetchJson('/api/bookings'),
                 ]);
                 state.assets = {
                     gedung: assets.gedung || [],
                     kendaraan: assets.kendaraan || [],
-                    supir: assets.supir || [],
                     barang: assets.barang || [],
                 };
+                state.drivers = Array.isArray(driversData) ? driversData : (driversData?.drivers || []);
                 state.bookings = bookings || [];
                 populateAssetFilter();
+                populateDriverFilter();
                 calendar.refetchEvents();
             } catch (err) {
                 console.error('Gagal memuat data', err);

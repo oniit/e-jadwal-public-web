@@ -34,8 +34,10 @@ const upload = multer({
 
 router.get('/', requestController.getAllRequests);
 router.get('/by-code/:code', requestController.getRequestByCode);
-router.get('/download-surat/:filename', requestController.downloadSurat);
 router.get('/:id', requestController.getRequestById);
 router.post('/', upload.single('letterFile'), requestController.createRequest);
+router.put('/:id/approve', requestController.approveRequest);
+router.put('/:id/reject', requestController.rejectRequest);
+router.delete('/:id', requestController.deleteRequest);
 
 module.exports = router;
