@@ -765,12 +765,26 @@
                     const code = prompt('Masukkan Booking ID atau Request ID');
                     if (!code) return;
                     try {
+                        const trimmedCode = code.trim();
                         let data;
-                        try {
-                            data = await fetchBookingByCode(code.trim());
-                        } catch {
-                            data = await fetchJson(`/api/requests/by-code/${code.trim()}`);
+                        
+                        // Check format: YYMMDD-XXXXX = Booking ID
+                        if (/^\d{6}-[A-Z0-9]{5}$/i.test(trimmedCode)) {
+                            data = await fetchBookingByCode(trimmedCode);
+                        } 
+                        // Check format: 5 random chars (alphanumeric) = Request ID
+                        else if (/^[A-Z0-9]{5}$/i.test(trimmedCode)) {
+                            data = await fetchJson(`/api/requests/by-code/${trimmedCode}`);
                         }
+                        // Unknown format, try both
+                        else {
+                            try {
+                                data = await fetchBookingByCode(trimmedCode);
+                            } catch {
+                                data = await fetchJson(`/api/requests/by-code/${trimmedCode}`);
+                            }
+                        }
+                        
                         showDetailModalFull(data);
                     } catch (err) {
                         alert(err.message || 'Data tidak ditemukan');
